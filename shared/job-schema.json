@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PDFJobRecord",
+  "description": "Schema for a job record stored as a Redis hash at key job:{job_id}",
+  "type": "object",
+  "required": [
+    "job_id",
+    "tool",
+    "status",
+    "file_ids",
+    "options",
+    "progress",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "UUIDv4 hex (32 chars, no dashes)",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "tool": {
+      "type": "string",
+      "enum": ["merge", "split", "compress", "convert"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "processing", "completed", "failed"]
+    },
+    "file_ids": {
+      "type": "string",
+      "description": "JSON-encoded array of file_id strings"
+    },
+    "options": {
+      "type": "string",
+      "description": "JSON-encoded options dict"
+    },
+    "output_path": {
+      "type": ["string", "null"],
+      "default": null
+    },
+    "error": {
+      "type": ["string", "null"],
+      "default": null
+    },
+    "progress": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 0
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
