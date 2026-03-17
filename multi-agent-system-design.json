@@ -1,0 +1,783 @@
+{
+  "project": "PDF Processing SaaS (Sejda Clone)",
+  "version": "1.0",
+  "designed_by": "Principal AI System Architect",
+
+  "agents": [
+    {
+      "id": "planner",
+      "role": "Planner Agent",
+      "responsibilities": [
+        "Parse PRD, architecture diagram, and milestone tracker to produce an ordered build plan",
+        "Break each milestone phase into atomic dev tasks with explicit dependencies",
+        "Generate the shared API contract (OpenAPI 3.1 spec) that Frontend, Backend, and Worker agents all code against",
+        "Detect circular or missing dependencies and re-sequence tasks",
+        "Emit the canonical job schema, file naming conventions, and shared constants file"
+      ],
+      "inputs": [
+        "prd.md",
+        "arch.md",
+        "milestone.md"
+      ],
+      "outputs": [
+        "tasks.json — ordered task list with dependency graph",
+        "api-contract.yaml — OpenAPI 3.1 spec for all endpoints",
+        "shared-types.ts — TypeScript types consumed by frontend",
+        "shared-schemas.py — Pydantic models consumed by backend and workers",
+        "job-schema.json — canonical job object definition"
+      ]
+    },
+    {
+      "id": "frontend",
+      "role": "Frontend Agent",
+      "responsibilities": [
+        "Scaffold Next.js 14 app with App Router, Tailwind CSS 3, and TypeScript strict mode",
+        "Build tool grid landing page with cards for merge, split, compress, convert",
+        "Build upload page per tool: drag-and-drop zone, file list, multi-file support for merge",
+        "Build processing screen with polling-based progress indicator against GET /jobs/{id}",
+        "Build download page with auto-download trigger and manual retry button",
+        "Build error display page when job status is 'failed'",
+        "Consume api-contract.yaml to generate typed API client using openapi-typescript-codegen",
+        "Implement responsive layout (mobile-first) and accessible markup (ARIA labels)"
+      ],
+      "inputs": [
+        "api-contract.yaml",
+        "shared-types.ts",
+        "Figma-free wireframe specs (text description if no Figma)"
+      ],
+      "outputs": [
+        "Complete Next.js app under /frontend directory",
+        "Pages: /, /tools/[tool], /jobs/[id], /download/[id]",
+        "API client module at /frontend/lib/api.ts",
+        "Tailwind theme config at /frontend/tailwind.config.ts"
+      ]
+    },
+    {
+      "id": "backend",
+      "role": "Backend Agent",
+      "responsibilities": [
+        "Scaffold FastAPI project with uvicorn, structured as /backend directory",
+        "Implement POST /upload endpoint — accepts multipart file, saves to temp storage, returns file_id",
+        "Implement POST /jobs endpoint — accepts {tool, file_ids[], options}, creates job in Redis, returns job_id",
+        "Implement GET /jobs/{id} endpoint — returns job status, progress percentage, output file path",
+        "Implement GET /download/{id} endpoint — streams processed file as attachment, sets Content-Disposition",
+        "Implement DELETE /files/{id} endpoint — manual cleanup trigger",
+        "Implement background TTL cleanup: cron task that deletes files older than 2 hours",
+        "Enqueue jobs to Redis using rq (Redis Queue) with job_id as key",
+        "Validate all inputs with Pydantic models from shared-schemas.py",
+        "Add CORS middleware allowing frontend origin"
+      ],
+      "inputs": [
+        "api-contract.yaml",
+        "shared-schemas.py",
+        "job-schema.json"
+      ],
+      "outputs": [
+        "Complete FastAPI app under /backend directory",
+        "Endpoints: POST /upload, POST /jobs, GET /jobs/{id}, GET /download/{id}, DELETE /files/{id}",
+        "Redis integration module at /backend/queue.py",
+        "File storage module at /backend/storage.py",
+        "Pydantic models at /backend/models.py",
+        "requirements.txt with pinned versions"
+      ]
+    },
+    {
+      "id": "worker",
+      "role": "Worker Agent",
+      "responsibilities": [
+        "Build Python worker process that consumes jobs from Redis queue",
+        "Implement merge handler: accepts list of file paths, merges using pypdf.PdfMerger, writes output",
+        "Implement split handler: accepts file path + page ranges, splits using pypdf.PdfReader/PdfWriter",
+        "Implement compress handler: reduces image quality and removes metadata using pypdf",
+        "Implement convert handler: PDF-to-Word using pdf2docx, Word-to-PDF using python-docx + reportlab",
+        "Update job status in Redis at each stage: queued → processing → completed/failed",
+        "Write output file to temp storage with deterministic naming: {job_id}_output.{ext}",
+        "Catch all exceptions, write error message to job record, set status to 'failed'",
+        "Respect max file size limit (50MB per file for free tier)"
+      ],
+      "inputs": [
+        "job-schema.json",
+        "shared-schemas.py",
+        "Input files from temp storage"
+      ],
+      "outputs": [
+        "Worker module under /worker directory",
+        "Handlers: /worker/handlers/merge.py, split.py, compress.py, convert.py",
+        "Base worker loop at /worker/main.py",
+        "Output files written to /storage/output/{job_id}_output.{ext}",
+        "requirements.txt with pinned versions"
+      ]
+    },
+    {
+      "id": "devops",
+      "role": "DevOps Agent",
+      "responsibilities": [
+        "Create docker-compose.yml that orchestrates: frontend, backend, worker, redis, and optional minio (S3-compatible)",
+        "Write Dockerfile for frontend (Node 20 alpine, multi-stage build)",
+        "Write Dockerfile for backend (Python 3.12 slim, pip install from requirements.txt)",
+        "Write Dockerfile for worker (Python 3.12 slim, same base as backend plus system deps for pdf processing)",
+        "Configure Redis as both job queue and job status store with persistence disabled (ephemeral data)",
+        "Create /storage/uploads and /storage/output directories as Docker volumes",
+        "Write .env.example with all required environment variables",
+        "Create Makefile with targets: up, down, build, logs, clean",
+        "Ensure all services share a Docker network named pdfedit-net"
+      ],
+      "inputs": [
+        "Dockerfile requirements from backend, frontend, worker agents",
+        "Environment variable list from all services"
+      ],
+      "outputs": [
+        "docker-compose.yml at project root",
+        "Dockerfile.frontend, Dockerfile.backend, Dockerfile.worker",
+        ".env.example",
+        "Makefile",
+        "nginx.conf (optional reverse proxy config)"
+      ]
+    },
+    {
+      "id": "tester",
+      "role": "Tester Agent",
+      "responsibilities": [
+        "Write pytest integration tests for every backend endpoint using httpx.AsyncClient",
+        "Write pytest tests for each worker handler using real small PDF fixtures",
+        "Write Playwright end-to-end tests: upload → process → download for merge tool",
+        "Test job status transitions: queued → processing → completed, and queued → processing → failed",
+        "Test file cleanup: verify files are deleted after TTL",
+        "Test error cases: upload invalid file type, exceed file size, request nonexistent job_id",
+        "Generate test PDF fixtures (1-page, 5-page, corrupt file) as /tests/fixtures/",
+        "Produce test report as JSON: {total, passed, failed, errors[]}"
+      ],
+      "inputs": [
+        "Running backend and worker services",
+        "api-contract.yaml",
+        "Test fixtures"
+      ],
+      "outputs": [
+        "Backend tests at /tests/test_api.py",
+        "Worker tests at /tests/test_workers.py",
+        "E2E tests at /tests/e2e/test_merge_flow.py",
+        "Test fixtures at /tests/fixtures/",
+        "test-report.json"
+      ]
+    },
+    {
+      "id": "fixer",
+      "role": "Fixer Agent",
+      "responsibilities": [
+        "Consume test-report.json and parse all failures",
+        "For each failure: read the failing test, read the target source file, identify root cause",
+        "Apply minimal targeted patches — never rewrite entire files",
+        "Re-run only the previously failing tests to confirm fix",
+        "If a fix introduces new failures, rollback and escalate to Planner Agent for re-sequencing",
+        "Fix common integration issues: CORS mismatch, Redis connection string, file path misalignment, missing deps",
+        "Log all patches applied as fix-log.json for audit trail"
+      ],
+      "inputs": [
+        "test-report.json",
+        "Source code from frontend, backend, worker directories",
+        "Docker logs (stderr/stdout)"
+      ],
+      "outputs": [
+        "Patched source files (in-place edits)",
+        "fix-log.json — list of {file, line, before, after, reason}",
+        "Updated test-report.json after re-validation"
+      ]
+    }
+  ],
+
+  "execution_strategy": {
+    "overview": "Three-wave execution with a shared contract spine. The Planner runs first to produce the API contract and schemas that all other agents depend on. Then Frontend, Backend, and Worker agents run in parallel since they code against the shared contract, not against each other. DevOps runs alongside Wave 2 since it depends only on knowing service structures. Testing and Fixing run sequentially after all code is written.",
+
+    "waves": [
+      {
+        "wave": 1,
+        "name": "Planning & Contract Generation",
+        "agents": ["planner"],
+        "mode": "sequential",
+        "description": "Planner reads PRD, arch.md, and milestone.md. Produces the task graph, OpenAPI spec, shared schemas, and job schema. All downstream agents receive these artifacts before they start.",
+        "exit_criteria": "api-contract.yaml, shared-schemas.py, shared-types.ts, job-schema.json, and tasks.json all exist and are internally consistent"
+      },
+      {
+        "wave": 2,
+        "name": "Parallel Implementation",
+        "agents": ["frontend", "backend", "worker", "devops"],
+        "mode": "parallel",
+        "description": "All four agents work simultaneously. Frontend builds UI against the OpenAPI spec. Backend implements the API endpoints per the spec. Worker implements handlers per the job schema. DevOps writes Docker and compose configs. No agent depends on another agent's output — they all depend only on Wave 1 artifacts.",
+        "exit_criteria": "Each agent has produced its complete directory of source code and can pass a local smoke test (frontend compiles, backend starts, worker imports successfully, docker-compose config is valid YAML)"
+      },
+      {
+        "wave": 3,
+        "name": "Integration, Testing & Fixing",
+        "agents": ["devops", "tester", "fixer"],
+        "mode": "sequential",
+        "description": "DevOps brings up the full stack via docker-compose. Tester runs all integration and E2E tests against the running stack. Fixer consumes failures and patches code. Tester re-runs. This loop repeats up to 3 iterations.",
+        "exit_criteria": "test-report.json shows 0 failures, full merge flow works end-to-end"
+      }
+    ],
+
+    "contract_synchronization": {
+      "mechanism": "All agents consume the same api-contract.yaml and shared-schemas.py produced by the Planner. No agent invents its own endpoint paths, request/response shapes, or job fields.",
+      "enforcement_rules": [
+        "Frontend API client is auto-generated from api-contract.yaml — no hand-written fetch calls",
+        "Backend Pydantic models are imported from shared-schemas.py — no duplicate model definitions",
+        "Worker reads job records using the same Pydantic models as Backend",
+        "Any agent needing a schema change must request it from Planner, who updates the contract and re-distributes"
+      ]
+    },
+
+    "file_format_consistency": {
+      "uploaded_files": "Stored as /storage/uploads/{file_id}.{original_ext}",
+      "output_files": "Stored as /storage/output/{job_id}_output.{target_ext}",
+      "file_id_format": "UUIDv4 hex string (32 chars, no dashes)",
+      "job_id_format": "UUIDv4 hex string (32 chars, no dashes)"
+    }
+  },
+
+  "tasks": [
+    {
+      "step": 1,
+      "agent": "planner",
+      "task": "Parse prd.md, arch.md, milestone.md and produce tasks.json with ordered steps and dependency edges",
+      "phase": 1,
+      "depends_on": []
+    },
+    {
+      "step": 2,
+      "agent": "planner",
+      "task": "Write api-contract.yaml (OpenAPI 3.1): define POST /upload, POST /jobs, GET /jobs/{id}, GET /download/{id}, DELETE /files/{id} with full request/response schemas",
+      "phase": 1,
+      "depends_on": [1]
+    },
+    {
+      "step": 3,
+      "agent": "planner",
+      "task": "Write shared-schemas.py with Pydantic models: FileUploadResponse, JobCreateRequest, JobCreateResponse, JobStatus, JobDetail, DownloadResponse, ErrorResponse",
+      "phase": 1,
+      "depends_on": [2]
+    },
+    {
+      "step": 4,
+      "agent": "planner",
+      "task": "Write shared-types.ts — TypeScript equivalents of all Pydantic models for frontend consumption",
+      "phase": 1,
+      "depends_on": [3]
+    },
+    {
+      "step": 5,
+      "agent": "planner",
+      "task": "Write job-schema.json defining the Redis job record structure: {job_id, tool, status, file_ids, options, output_path, error, created_at, updated_at}",
+      "phase": 1,
+      "depends_on": [2]
+    },
+    {
+      "step": 6,
+      "agent": "backend",
+      "task": "Scaffold FastAPI project: main.py, directory structure, requirements.txt with fastapi, uvicorn, python-multipart, redis, rq, pypdf",
+      "phase": 2,
+      "depends_on": [3]
+    },
+    {
+      "step": 7,
+      "agent": "backend",
+      "task": "Implement /backend/storage.py: save_file(upload) -> file_id, get_file_path(file_id), delete_file(file_id) using local filesystem under /storage/",
+      "phase": 2,
+      "depends_on": [6]
+    },
+    {
+      "step": 8,
+      "agent": "backend",
+      "task": "Implement POST /upload endpoint: accept multipart file, validate type (pdf/docx/jpg), validate size (<=50MB), save via storage module, return {file_id, filename, size}",
+      "phase": 2,
+      "depends_on": [7]
+    },
+    {
+      "step": 9,
+      "agent": "backend",
+      "task": "Implement /backend/queue.py: enqueue_job(job_data) that pushes to Redis using rq, get_job_status(job_id) that reads status from Redis hash",
+      "phase": 2,
+      "depends_on": [6]
+    },
+    {
+      "step": 10,
+      "agent": "backend",
+      "task": "Implement POST /jobs endpoint: validate tool type (merge|split|compress|convert), validate file_ids exist, create job record in Redis, enqueue to worker queue, return {job_id, status: 'queued'}",
+      "phase": 2,
+      "depends_on": [8, 9]
+    },
+    {
+      "step": 11,
+      "agent": "backend",
+      "task": "Implement GET /jobs/{id} endpoint: read job record from Redis, return {job_id, status, progress, output_path, error}",
+      "phase": 2,
+      "depends_on": [10]
+    },
+    {
+      "step": 12,
+      "agent": "backend",
+      "task": "Implement GET /download/{id} endpoint: verify job is completed, stream output file with Content-Disposition: attachment header",
+      "phase": 2,
+      "depends_on": [11]
+    },
+    {
+      "step": 13,
+      "agent": "backend",
+      "task": "Implement TTL cleanup: background task (asyncio or rq-scheduler) that deletes upload and output files older than 2 hours",
+      "phase": 2,
+      "depends_on": [7]
+    },
+    {
+      "step": 14,
+      "agent": "backend",
+      "task": "Add CORS middleware: allow frontend origin (http://localhost:3000 in dev), allow methods POST/GET/DELETE, allow Content-Type and Authorization headers",
+      "phase": 2,
+      "depends_on": [6]
+    },
+    {
+      "step": 15,
+      "agent": "worker",
+      "task": "Scaffold worker project: /worker/main.py with rq worker loop that listens on 'pdf-jobs' queue, /worker/handlers/ directory",
+      "phase": 2,
+      "depends_on": [5]
+    },
+    {
+      "step": 16,
+      "agent": "worker",
+      "task": "Implement merge handler: read file_ids from job, open each PDF with pypdf.PdfReader, merge into PdfWriter, write to /storage/output/{job_id}_output.pdf",
+      "phase": 2,
+      "depends_on": [15]
+    },
+    {
+      "step": 17,
+      "agent": "worker",
+      "task": "Implement split handler: read file_id and page_ranges from job options, split PDF using pypdf, write individual output PDFs or zip archive",
+      "phase": 2,
+      "depends_on": [15]
+    },
+    {
+      "step": 18,
+      "agent": "worker",
+      "task": "Implement compress handler: re-write PDF with reduced image quality using pypdf, strip metadata, write compressed output",
+      "phase": 2,
+      "depends_on": [15]
+    },
+    {
+      "step": 19,
+      "agent": "worker",
+      "task": "Implement convert handler: PDF-to-Word via pdf2docx.Converter, Word-to-PDF via python-docx read + reportlab write",
+      "phase": 2,
+      "depends_on": [15]
+    },
+    {
+      "step": 20,
+      "agent": "worker",
+      "task": "Implement job status updater: at start set status='processing', on success set status='completed' + output_path, on exception set status='failed' + error message",
+      "phase": 2,
+      "depends_on": [15]
+    },
+    {
+      "step": 21,
+      "agent": "frontend",
+      "task": "Scaffold Next.js 14 app with App Router, TypeScript, Tailwind CSS: npx create-next-app with --typescript --tailwind --app flags",
+      "phase": 2,
+      "depends_on": [4]
+    },
+    {
+      "step": 22,
+      "agent": "frontend",
+      "task": "Build landing page (/) with tool grid: 4 cards (Merge, Split, Compress, Convert) each linking to /tools/[tool]. Responsive grid, Tailwind styling",
+      "phase": 2,
+      "depends_on": [21]
+    },
+    {
+      "step": 23,
+      "agent": "frontend",
+      "task": "Build /frontend/lib/api.ts: typed API client with functions uploadFile(file) -> file_id, createJob(tool, file_ids, options) -> job_id, getJobStatus(job_id) -> JobDetail, getDownloadUrl(job_id) -> string",
+      "phase": 2,
+      "depends_on": [21]
+    },
+    {
+      "step": 24,
+      "agent": "frontend",
+      "task": "Build upload page /tools/[tool]/page.tsx: drag-and-drop zone using native HTML5 DnD, file type validation, multi-file support for merge, single file for others, upload progress bar",
+      "phase": 2,
+      "depends_on": [23]
+    },
+    {
+      "step": 25,
+      "agent": "frontend",
+      "task": "Build processing page /jobs/[id]/page.tsx: poll GET /jobs/{id} every 2 seconds, show spinner + progress percentage, redirect to download on completion, show error on failure",
+      "phase": 2,
+      "depends_on": [23]
+    },
+    {
+      "step": 26,
+      "agent": "frontend",
+      "task": "Build download page /download/[id]/page.tsx: auto-trigger file download via hidden anchor tag, show 'Download Again' button, show file size and name",
+      "phase": 2,
+      "depends_on": [23]
+    },
+    {
+      "step": 27,
+      "agent": "frontend",
+      "task": "Build error handling UI: global error boundary, per-page error states, retry button on failed jobs, toast notifications for upload failures",
+      "phase": 2,
+      "depends_on": [24, 25, 26]
+    },
+    {
+      "step": 28,
+      "agent": "devops",
+      "task": "Write Dockerfile.frontend: Node 20 alpine, multi-stage (deps install → build → production image with standalone output)",
+      "phase": 2,
+      "depends_on": [3]
+    },
+    {
+      "step": 29,
+      "agent": "devops",
+      "task": "Write Dockerfile.backend: Python 3.12 slim, copy requirements.txt, pip install, copy source, expose port 8000, CMD uvicorn",
+      "phase": 2,
+      "depends_on": [3]
+    },
+    {
+      "step": 30,
+      "agent": "devops",
+      "task": "Write Dockerfile.worker: Python 3.12 slim, install system deps (poppler-utils for pdf2image), pip install, CMD rq worker",
+      "phase": 2,
+      "depends_on": [3]
+    },
+    {
+      "step": 31,
+      "agent": "devops",
+      "task": "Write docker-compose.yml: services for frontend (port 3000), backend (port 8000), worker (no port), redis (port 6379). Shared volumes for /storage. Network pdfedit-net. Depends_on for service ordering",
+      "phase": 2,
+      "depends_on": [28, 29, 30]
+    },
+    {
+      "step": 32,
+      "agent": "devops",
+      "task": "Write .env.example, Makefile (targets: up, down, build, logs, test, clean), and nginx.conf for optional reverse proxy fronting backend and frontend on single port",
+      "phase": 2,
+      "depends_on": [31]
+    },
+    {
+      "step": 33,
+      "agent": "devops",
+      "task": "Bring up full stack with docker-compose up --build, verify all 4 services are healthy",
+      "phase": 3,
+      "depends_on": [8, 10, 11, 12, 16, 17, 18, 19, 22, 24, 25, 26, 31]
+    },
+    {
+      "step": 34,
+      "agent": "tester",
+      "task": "Generate test PDF fixtures: 1-page.pdf, 5-page.pdf, sample.docx, corrupt.pdf, oversized-stub.pdf (>50MB header). Place in /tests/fixtures/",
+      "phase": 3,
+      "depends_on": [33]
+    },
+    {
+      "step": 35,
+      "agent": "tester",
+      "task": "Write backend API tests (pytest + httpx): test upload valid PDF, test upload invalid file type (returns 422), test upload oversized file (returns 413), test create job, test get job status, test download completed job, test 404 on nonexistent job",
+      "phase": 3,
+      "depends_on": [34]
+    },
+    {
+      "step": 36,
+      "agent": "tester",
+      "task": "Write worker unit tests (pytest): test merge 2 PDFs produces valid output, test split produces correct page count, test compress output is smaller than input, test convert PDF-to-docx produces .docx, test corrupt PDF input sets job to 'failed'",
+      "phase": 3,
+      "depends_on": [34]
+    },
+    {
+      "step": 37,
+      "agent": "tester",
+      "task": "Write E2E test (Playwright or httpx scripted): upload 2 PDFs → create merge job → poll until completed → download output → verify output is valid PDF with correct page count",
+      "phase": 3,
+      "depends_on": [35, 36]
+    },
+    {
+      "step": 38,
+      "agent": "tester",
+      "task": "Run all tests, produce test-report.json with {total, passed, failed, errors: [{test_name, file, error_message}]}",
+      "phase": 3,
+      "depends_on": [37]
+    },
+    {
+      "step": 39,
+      "agent": "fixer",
+      "task": "Parse test-report.json, for each failure: identify root cause (CORS, path mismatch, missing dep, logic error), apply minimal patch, log to fix-log.json",
+      "phase": 3,
+      "depends_on": [38]
+    },
+    {
+      "step": 40,
+      "agent": "tester",
+      "task": "Re-run all tests after fixes. If failures remain, loop back to Fixer (max 3 iterations). Produce final test-report.json",
+      "phase": 3,
+      "depends_on": [39]
+    }
+  ],
+
+  "agent_prompts": {
+    "planner": "You are the Planner Agent for a PDF Processing SaaS platform (Sejda clone). Your job is to read the project's PRD (prd.md), architecture diagram (arch.md), and milestone tracker (milestone.md) and produce the artifacts that all other agents depend on.\n\nTech stack: Next.js 14 (App Router, TypeScript, Tailwind) for frontend, FastAPI (Python 3.12) for backend, Redis + rq for job queue, pypdf/pdf2docx/reportlab for PDF processing, Docker Compose for orchestration.\n\nYou MUST produce these artifacts:\n1. tasks.json — An ordered list of development tasks. Each task has: step (int), agent (string: frontend|backend|worker|devops|tester|fixer), task (string: what to build), phase (int: 1-3), depends_on (int[]: step numbers this depends on). Tasks must cover: project scaffolding, API endpoints, worker handlers, frontend pages, Docker setup, testing, and fixing.\n2. api-contract.yaml — OpenAPI 3.1 specification defining these endpoints: POST /upload (multipart file → {file_id, filename, size}), POST /jobs ({tool, file_ids, options} → {job_id, status}), GET /jobs/{id} (→ {job_id, tool, status, progress, output_path, error, created_at}), GET /download/{id} (→ binary file stream), DELETE /files/{id} (→ {deleted: true}). Include error schemas (422, 413, 404, 500). Use JSON request/response except upload (multipart) and download (octet-stream).\n3. shared-schemas.py — Pydantic v2 models: FileUploadResponse(file_id: str, filename: str, size: int), JobCreateRequest(tool: Literal['merge','split','compress','convert'], file_ids: list[str], options: dict), JobCreateResponse(job_id: str, status: str), JobDetail(job_id: str, tool: str, status: Literal['queued','processing','completed','failed'], progress: int, output_path: str | None, error: str | None, created_at: str, updated_at: str), ErrorResponse(detail: str).\n4. shared-types.ts — TypeScript interfaces matching every Pydantic model above.\n5. job-schema.json — JSON Schema for the Redis job hash: {job_id: string, tool: enum, status: enum, file_ids: string[], options: object, output_path: string|null, error: string|null, progress: integer(0-100), created_at: ISO8601, updated_at: ISO8601}.\n\nConstraints: UUIDs are v4 hex (32 chars, no dashes). File size limit is 50MB. TTL for temp files is 7200 seconds (2 hours). Supported tools: merge, split, compress, convert. All timestamps are ISO 8601 UTC. Output files are named {job_id}_output.{ext}.\n\nDo NOT write any application code beyond the shared schemas. Do NOT make assumptions — derive everything from the provided documents.",
+
+    "frontend": "You are the Frontend Agent for a PDF Processing SaaS platform. You build the entire Next.js web application.\n\nTech stack: Next.js 14 with App Router, TypeScript (strict mode), Tailwind CSS 3. No additional UI library unless absolutely necessary.\n\nProject structure:\n/frontend/\n  app/\n    page.tsx                    — Landing page with tool grid\n    tools/[tool]/page.tsx       — Upload page per tool\n    jobs/[id]/page.tsx          — Processing/status page\n    download/[id]/page.tsx      — Download page\n    layout.tsx                  — Root layout with header/footer\n    error.tsx                   — Global error boundary\n  lib/\n    api.ts                      — Typed API client\n    types.ts                    — Import from shared-types.ts\n  components/\n    ToolCard.tsx                — Card component for tool grid\n    FileDropzone.tsx            — Drag-and-drop upload zone\n    ProgressBar.tsx             — Job progress indicator\n    DownloadButton.tsx          — Download trigger\n\nAPI base URL: process.env.NEXT_PUBLIC_API_URL (default http://localhost:8000).\n\nEndpoints you consume (from api-contract.yaml):\n- POST /upload — send FormData with file field, receive {file_id, filename, size}\n- POST /jobs — send JSON {tool, file_ids, options}, receive {job_id, status}\n- GET /jobs/{id} — receive JobDetail with status, progress, output_path\n- GET /download/{id} — receive binary file stream\n\nUI behavior:\n1. Landing page: 2x2 responsive grid of ToolCards. Each card has icon, title, description, links to /tools/[tool].\n2. Upload page: FileDropzone accepts drag-and-drop or click-to-select. For 'merge' tool, allow multiple files. For others, single file. Show file list with names and sizes. 'Process' button calls uploadFile for each file, then createJob, then navigates to /jobs/[job_id].\n3. Processing page: On mount, poll GET /jobs/{id} every 2000ms. Show ProgressBar. On status 'completed', redirect to /download/[id]. On status 'failed', show error message with retry option.\n4. Download page: Auto-trigger download via programmatic anchor click. Show filename, size, 'Download Again' button.\n\nConstraints: No server-side API routes in Next.js — all API calls go to the FastAPI backend. No authentication in MVP. Mobile-responsive. Accessible (ARIA labels on interactive elements). All components must be client components ('use client') where state is needed.\n\nOutput: Complete, working Next.js application code. Every file must be complete — no placeholder comments like '// TODO' or '// implement later'.",
+
+    "backend": "You are the Backend Agent for a PDF Processing SaaS platform. You build the entire FastAPI REST API.\n\nTech stack: Python 3.12, FastAPI, uvicorn, python-multipart (file uploads), redis (Redis client), rq (Redis Queue), Pydantic v2.\n\nProject structure:\n/backend/\n  main.py                — FastAPI app, CORS, router includes\n  routes/\n    upload.py            — POST /upload\n    jobs.py              — POST /jobs, GET /jobs/{id}\n    download.py          — GET /download/{id}\n    files.py             — DELETE /files/{id}\n  storage.py             — File save/read/delete using local filesystem\n  queue.py               — Redis queue enqueue/status helpers\n  models.py              — Import Pydantic models from shared-schemas.py\n  cleanup.py             — TTL-based file cleanup task\n  config.py              — Settings via environment variables\n  requirements.txt       — Pinned dependencies\n\nEndpoint specifications (from api-contract.yaml):\n\n1. POST /upload\n   - Accept: multipart/form-data, field name 'file'\n   - Validate: file type in [application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, image/jpeg, image/png]\n   - Validate: file size <= 50MB (52_428_800 bytes)\n   - Save to /storage/uploads/{file_id}.{ext} where file_id is uuid4().hex\n   - Return 200: {file_id, filename, size}\n   - Return 413 if too large, 422 if invalid type\n\n2. POST /jobs\n   - Accept: JSON body {tool: 'merge'|'split'|'compress'|'convert', file_ids: string[], options: object}\n   - Validate: all file_ids exist in storage\n   - Validate: merge requires >=2 file_ids, others require exactly 1\n   - Create job record in Redis hash: job:{job_id} with all fields from job-schema.json\n   - Enqueue to rq queue named 'pdf-jobs'\n   - Return 200: {job_id, status: 'queued'}\n\n3. GET /jobs/{id}\n   - Read Redis hash job:{id}\n   - Return 200: full JobDetail\n   - Return 404 if not found\n\n4. GET /download/{id}\n   - Read job record, verify status is 'completed' and output_path exists\n   - Return FileResponse with Content-Disposition: attachment\n   - Return 404 if job not found, 400 if job not completed\n\n5. DELETE /files/{id}\n   - Delete file from storage\n   - Return 200: {deleted: true}\n   - Return 404 if not found\n\nRedis: Connect via REDIS_URL env var (default redis://localhost:6379/0). Job records stored as Redis hashes with key pattern job:{job_id}. Status enum: queued, processing, completed, failed.\n\nCORS: Allow origins from CORS_ORIGINS env var (default http://localhost:3000). Allow methods: GET, POST, DELETE. Allow headers: Content-Type.\n\nCleanup: Use apscheduler or manual cron to scan /storage/uploads and /storage/output, delete files with mtime > 7200 seconds ago.\n\nConstraints: No database — Redis is the only data store. No authentication in MVP. File paths must use pathlib for cross-platform safety. All errors return JSON {detail: string}. Log all requests with structlog or standard logging.\n\nOutput: Complete, working FastAPI application code. Every file must be complete — no placeholder comments.",
+
+    "worker": "You are the Worker Agent for a PDF Processing SaaS platform. You build Python worker processes that consume jobs from Redis and perform PDF operations.\n\nTech stack: Python 3.12, rq (Redis Queue), pypdf (merge, split, compress), pdf2docx (PDF to Word), python-docx + reportlab (Word to PDF), redis.\n\nProject structure:\n/worker/\n  main.py                      — rq Worker setup, connects to Redis, listens on 'pdf-jobs' queue\n  handlers/\n    __init__.py                — Handler registry: maps tool name string to handler function\n    merge.py                   — merge_handler(job_data: dict)\n    split.py                   — split_handler(job_data: dict)\n    compress.py                — compress_handler(job_data: dict)\n    convert.py                 — convert_handler(job_data: dict)\n  utils.py                     — update_job_status(redis_conn, job_id, status, **extras)\n  requirements.txt             — Pinned dependencies\n\nJob data structure (from job-schema.json):\n{\n  \"job_id\": \"hexuuid\",\n  \"tool\": \"merge|split|compress|convert\",\n  \"status\": \"queued\",\n  \"file_ids\": [\"id1\", \"id2\"],\n  \"options\": {\"page_ranges\": \"1-3,5\", \"convert_to\": \"docx\"},\n  \"output_path\": null,\n  \"error\": null,\n  \"progress\": 0,\n  \"created_at\": \"ISO8601\",\n  \"updated_at\": \"ISO8601\"\n}\n\nHandler specifications:\n\n1. merge_handler:\n   - Read file paths: /storage/uploads/{file_id}.pdf for each file_id\n   - Use pypdf.PdfMerger to merge all files in order\n   - Write to /storage/output/{job_id}_output.pdf\n   - Update job: status='completed', output_path, progress=100\n\n2. split_handler:\n   - Read single file: /storage/uploads/{file_id}.pdf\n   - Parse options.page_ranges (e.g., '1-3,5,7-10') into list of page numbers (0-indexed internally)\n   - Use pypdf.PdfReader + PdfWriter to extract pages\n   - If single range: write single PDF. If multiple ranges: write zip archive of PDFs\n   - Output: /storage/output/{job_id}_output.pdf or .zip\n\n3. compress_handler:\n   - Read single file\n   - Use pypdf.PdfReader, iterate pages, for each page call page.compress_content_streams()\n   - Remove metadata with writer.add_metadata({})\n   - Write compressed PDF\n   - Output: /storage/output/{job_id}_output.pdf\n\n4. convert_handler:\n   - If options.convert_to == 'docx': use pdf2docx.Converter to convert PDF to Word\n   - If options.convert_to == 'pdf': read .docx with python-docx, write PDF with reportlab\n   - Output: /storage/output/{job_id}_output.{docx|pdf}\n\nStatus updates: At the start of every handler, call update_job_status(status='processing', progress=0). At completion, call update_job_status(status='completed', progress=100, output_path=...). On ANY exception, catch it, call update_job_status(status='failed', error=str(e)), and re-raise for rq logging.\n\nThe main.py worker entry point must:\n- Connect to Redis via REDIS_URL env var (default redis://localhost:6379/0)\n- Create an rq Worker listening on queue 'pdf-jobs'\n- The job function dispatches to the correct handler based on job_data['tool']\n\nConstraints: Never hold entire large files in memory — use streaming/chunked reads where possible. Max file size is 50MB. All file paths use pathlib. Worker must be stateless — all state lives in Redis and the filesystem. Log handler start/completion/failure with job_id.\n\nOutput: Complete, working worker code. Every file must be complete — no placeholders.",
+
+    "devops": "You are the DevOps Agent for a PDF Processing SaaS platform. You build all containerization and orchestration configuration.\n\nTech stack: Docker, Docker Compose v2, Redis 7 (Alpine), Node 20 (Alpine) for frontend, Python 3.12 (slim) for backend and worker.\n\nProject structure (at repo root):\n  docker-compose.yml\n  Dockerfile.frontend\n  Dockerfile.backend\n  Dockerfile.worker\n  .env.example\n  Makefile\n  nginx.conf (optional)\n\nService definitions for docker-compose.yml:\n\n1. frontend:\n   - Build from Dockerfile.frontend, context ./frontend\n   - Port: 3000:3000\n   - Env: NEXT_PUBLIC_API_URL=http://localhost:8000\n   - Depends on: backend\n\n2. backend:\n   - Build from Dockerfile.backend, context ./backend\n   - Port: 8000:8000\n   - Env: REDIS_URL=redis://redis:6379/0, CORS_ORIGINS=http://localhost:3000, STORAGE_PATH=/storage\n   - Volumes: storage-data:/storage\n   - Depends on: redis\n\n3. worker:\n   - Build from Dockerfile.worker, context ./worker\n   - No exposed ports\n   - Env: REDIS_URL=redis://redis:6379/0, STORAGE_PATH=/storage\n   - Volumes: storage-data:/storage (same volume as backend — critical for file sharing)\n   - Depends on: redis, backend\n\n4. redis:\n   - Image: redis:7-alpine\n   - Port: 6379:6379\n   - Command: redis-server --save '' --appendonly no (ephemeral, no persistence)\n\nVolumes:\n  storage-data: {} (shared between backend and worker)\n\nNetwork:\n  pdfedit-net: driver bridge (all services on this network)\n\nDockerfile.frontend:\n  Stage 1 (deps): FROM node:20-alpine, WORKDIR /app, COPY package*.json, RUN npm ci\n  Stage 2 (build): COPY ., RUN npm run build\n  Stage 3 (run): FROM node:20-alpine, COPY --from=build /app/.next/standalone ., COPY --from=build /app/.next/static .next/static, COPY --from=build /app/public public, CMD node server.js\n\nDockerfile.backend:\n  FROM python:3.12-slim, WORKDIR /app, COPY requirements.txt, RUN pip install --no-cache-dir -r requirements.txt, COPY . ., RUN mkdir -p /storage/uploads /storage/output, EXPOSE 8000, CMD uvicorn main:app --host 0.0.0.0 --port 8000\n\nDockerfile.worker:\n  FROM python:3.12-slim, RUN apt-get update && apt-get install -y poppler-utils && rm -rf /var/lib/apt/lists/*, WORKDIR /app, COPY requirements.txt, RUN pip install --no-cache-dir -r requirements.txt, COPY . ., CMD python main.py\n\n.env.example:\n  REDIS_URL=redis://redis:6379/0\n  CORS_ORIGINS=http://localhost:3000\n  STORAGE_PATH=/storage\n  NEXT_PUBLIC_API_URL=http://localhost:8000\n  MAX_FILE_SIZE=52428800\n  FILE_TTL_SECONDS=7200\n\nMakefile targets:\n  up: docker compose up -d --build\n  down: docker compose down\n  build: docker compose build\n  logs: docker compose logs -f\n  test: docker compose exec backend pytest /tests\n  clean: docker compose down -v --rmi local\n\nConstraints: The shared storage-data volume is critical — backend writes uploads, worker reads them and writes output, backend serves downloads. Redis must NOT persist data (append-only off, no snapshots). All Dockerfiles must use multi-stage builds or slim images to minimize image size. Health checks are optional but recommended (curl localhost:8000/health for backend, redis-cli ping for redis).\n\nOutput: Complete, valid configuration files. Every file must be complete — no placeholders.",
+
+    "tester": "You are the Tester Agent for a PDF Processing SaaS platform. You write and run all automated tests.\n\nTech stack: pytest, httpx (async HTTP client for FastAPI testing), Playwright (E2E browser tests), pytest-asyncio.\n\nProject structure:\n/tests/\n  conftest.py              — Shared fixtures: API base URL, Redis client, test file paths\n  fixtures/\n    1-page.pdf             — Minimal valid PDF (1 page with text)\n    5-page.pdf             — 5-page PDF for split testing\n    sample.docx            — Valid Word document for conversion testing\n    corrupt.pdf            — Invalid/corrupt PDF (random bytes with .pdf extension)\n  test_api.py              — Backend API integration tests\n  test_workers.py          — Worker handler unit tests\n  e2e/\n    test_merge_flow.py     — End-to-end merge workflow test\n\nBackend API tests (test_api.py) using httpx against http://localhost:8000:\n\n1. test_upload_valid_pdf: POST /upload with 1-page.pdf → 200, response has file_id, filename, size > 0\n2. test_upload_invalid_type: POST /upload with a .txt file → 422\n3. test_upload_too_large: POST /upload with >50MB payload → 413\n4. test_create_merge_job: Upload 2 PDFs, POST /jobs {tool:'merge', file_ids:[id1,id2]} → 200, response has job_id, status='queued'\n5. test_create_job_missing_files: POST /jobs with nonexistent file_ids → 404 or 422\n6. test_get_job_status: Create job, GET /jobs/{id} → 200, status is one of [queued, processing, completed, failed]\n7. test_get_nonexistent_job: GET /jobs/fakeid → 404\n8. test_download_completed_job: Create merge job, poll until completed (timeout 30s), GET /download/{id} → 200, Content-Type is application/pdf\n9. test_download_not_ready: Create job, immediately GET /download/{id} → 400 (job not completed)\n\nWorker tests (test_workers.py) — import handlers directly, pass mock job data:\n\n1. test_merge_two_pdfs: Merge 1-page.pdf + 5-page.pdf → output exists, page count = 6\n2. test_split_pages: Split 5-page.pdf with page_ranges='1-3' → output has 3 pages\n3. test_compress_reduces_size: Compress 5-page.pdf → output size < input size\n4. test_convert_pdf_to_docx: Convert 1-page.pdf → output is valid .docx\n5. test_corrupt_pdf_fails: Process corrupt.pdf → job status becomes 'failed', error message set\n\nE2E test (test_merge_flow.py) — full HTTP workflow, no browser:\n\n1. Upload 1-page.pdf and 5-page.pdf via POST /upload\n2. Create merge job via POST /jobs\n3. Poll GET /jobs/{id} until status='completed' (max 30s, poll every 1s)\n4. Download via GET /download/{id}\n5. Verify downloaded content is valid PDF with 6 pages (use pypdf.PdfReader)\n\nTest report: After running all tests, produce /tests/test-report.json:\n{\n  \"total\": int,\n  \"passed\": int,\n  \"failed\": int,\n  \"errors\": [\n    {\"test_name\": \"test_upload_valid_pdf\", \"file\": \"test_api.py\", \"error_message\": \"...\"}\n  ]\n}\n\nUse a pytest plugin or conftest.py hook to generate this JSON automatically.\n\nConstraints: Tests must run against a live stack (docker-compose up). Tests must be idempotent — clean up uploaded files after each test. Use pytest fixtures for shared setup. Timeout any polling loop at 30 seconds. Do not mock Redis or the filesystem in integration tests — test against real services.\n\nOutput: Complete test files and fixtures. Every test must be fully implemented — no skips or placeholders.",
+
+    "fixer": "You are the Fixer Agent for a PDF Processing SaaS platform. You diagnose test failures and apply minimal, targeted patches.\n\nYou receive: test-report.json containing all test failures with test names, file locations, and error messages.\n\nYour process for EACH failure:\n\n1. READ the failing test code to understand what it expected\n2. READ the source file being tested to find the bug\n3. IDENTIFY the root cause — common issues include:\n   - CORS: backend not allowing frontend origin or correct methods/headers\n   - Redis connection: wrong REDIS_URL, connection refused, missing redis import\n   - File paths: backend saves to /storage/uploads/ but worker looks in different path\n   - Missing dependencies: import error because a package is not in requirements.txt\n   - Schema mismatch: frontend sends 'fileIds' but backend expects 'file_ids'\n   - Status codes: endpoint returns wrong HTTP status code\n   - Content-Type: download endpoint missing Content-Disposition header\n   - Job dispatch: rq job function not importable from worker's perspective\n   - Pydantic validation: model field types don't match actual data\n4. APPLY the minimal fix — change only the lines necessary. Never rewrite entire files.\n5. LOG the fix in fix-log.json:\n   {\n     \"fixes\": [\n       {\n         \"test_name\": \"test_upload_valid_pdf\",\n         \"file\": \"/backend/routes/upload.py\",\n         \"line\": 15,\n         \"before\": \"return JSONResponse(status_code=201, ...)\",\n         \"after\": \"return JSONResponse(status_code=200, ...)\",\n         \"reason\": \"API contract specifies 200 for successful upload, not 201\"\n       }\n     ]\n   }\n\n6. After all fixes, signal the Tester Agent to re-run failed tests only.\n\nEscalation rules:\n- If a fix would require changing the API contract itself → escalate to Planner Agent\n- If a fix causes new test failures → revert the fix, try alternative approach\n- If the same test fails 3 times after different fixes → log as unresolved and escalate\n- Maximum 3 fix-test cycles before declaring completion\n\nConstraints: Never change test expectations to match broken code — always fix the source code to match the contract. Never add workarounds or hacks — fix root causes. Preserve all existing passing tests. Do not refactor or improve code beyond what is needed to fix the failure.\n\nOutput: Patched source files and fix-log.json."
+  },
+
+  "data_flow": {
+    "overview": "Linear pipeline: Upload → Storage → Job Creation → Queue → Worker → Output Storage → Download → TTL Cleanup",
+
+    "step_by_step": [
+      {
+        "step": "1. Upload",
+        "actor": "User via Frontend",
+        "action": "User selects file(s) and drops into FileDropzone",
+        "data": "Raw file bytes as multipart/form-data",
+        "destination": "POST /upload on Backend"
+      },
+      {
+        "step": "2. Store Input",
+        "actor": "Backend (storage.py)",
+        "action": "Generate file_id (uuid4 hex), save file to disk",
+        "data": "/storage/uploads/{file_id}.{ext}",
+        "destination": "Filesystem (Docker volume storage-data)"
+      },
+      {
+        "step": "3. Create Job",
+        "actor": "Frontend calls POST /jobs",
+        "action": "Backend validates file_ids exist, creates job record in Redis, enqueues to rq",
+        "data": "Redis hash key job:{job_id} with all fields from job-schema.json",
+        "destination": "Redis + rq queue 'pdf-jobs'"
+      },
+      {
+        "step": "4. Worker Picks Up Job",
+        "actor": "Worker (main.py rq loop)",
+        "action": "Dequeue job, dispatch to correct handler based on job.tool",
+        "data": "Job dict with file_ids, tool, options",
+        "destination": "Handler function (merge/split/compress/convert)"
+      },
+      {
+        "step": "5. Process",
+        "actor": "Worker handler",
+        "action": "Read input file(s) from /storage/uploads/, perform PDF operation, write output",
+        "data": "/storage/output/{job_id}_output.{ext}",
+        "destination": "Filesystem (same Docker volume)"
+      },
+      {
+        "step": "6. Update Status",
+        "actor": "Worker (utils.py)",
+        "action": "Update Redis hash: status='completed', output_path=..., progress=100",
+        "data": "Redis hash update",
+        "destination": "Redis"
+      },
+      {
+        "step": "7. Poll & Redirect",
+        "actor": "Frontend /jobs/[id] page",
+        "action": "Poll GET /jobs/{id} every 2s, detect status='completed', redirect to /download/[id]",
+        "data": "JobDetail JSON response",
+        "destination": "Frontend router navigation"
+      },
+      {
+        "step": "8. Download",
+        "actor": "Frontend /download/[id] page",
+        "action": "Trigger GET /download/{id}, backend streams file bytes",
+        "data": "Binary file response with Content-Disposition: attachment",
+        "destination": "User's browser downloads the file"
+      },
+      {
+        "step": "9. TTL Cleanup",
+        "actor": "Backend (cleanup.py)",
+        "action": "Every 10 minutes, scan /storage/uploads and /storage/output, delete files with mtime > 7200s",
+        "data": "File deletion + Redis hash deletion for expired jobs",
+        "destination": "Filesystem and Redis cleanup"
+      }
+    ],
+
+    "job_schema": {
+      "job_id": "string — uuid4 hex (32 chars)",
+      "tool": "enum — 'merge' | 'split' | 'compress' | 'convert'",
+      "status": "enum — 'queued' | 'processing' | 'completed' | 'failed'",
+      "file_ids": "string[] — list of file_id references in /storage/uploads/",
+      "options": "object — tool-specific: {page_ranges: string} for split, {convert_to: 'docx'|'pdf'} for convert, {} for merge/compress",
+      "output_path": "string | null — e.g. '/storage/output/abc123_output.pdf', null until completed",
+      "error": "string | null — error message if status='failed', null otherwise",
+      "progress": "integer 0-100 — updated by worker during processing",
+      "created_at": "string — ISO 8601 UTC timestamp",
+      "updated_at": "string — ISO 8601 UTC timestamp, updated on every status change"
+    },
+
+    "file_lifecycle": {
+      "upload": "User uploads → saved to /storage/uploads/{file_id}.{ext}",
+      "processing": "Worker reads from /storage/uploads/, writes to /storage/output/{job_id}_output.{ext}",
+      "download": "Backend streams from /storage/output/{job_id}_output.{ext} to user",
+      "cleanup": "Cleanup task deletes both upload and output files after 7200 seconds (2 hours)",
+      "redis_cleanup": "Job hashes in Redis are deleted when corresponding files are cleaned up"
+    }
+  },
+
+  "failure_handling": {
+    "worker_failure": {
+      "scenario": "Worker handler throws an exception during PDF processing",
+      "handling": [
+        "Handler wraps all logic in try/except at the top level",
+        "On exception: update Redis job status to 'failed', set error field to str(exception)",
+        "rq automatically records the failure in its failed job registry",
+        "Worker process itself stays alive — only the individual job fails",
+        "Frontend polling detects status='failed', shows error message to user with retry option"
+      ],
+      "retry_strategy": {
+        "automatic_retries": 2,
+        "mechanism": "rq built-in retry: job is re-enqueued up to 2 times with exponential backoff (10s, 60s)",
+        "configuration": "Pass retry=Retry(max=2, interval=[10, 60]) when enqueuing in queue.py",
+        "after_exhaustion": "Job stays in failed status. User can manually retry from UI which creates a new job."
+      }
+    },
+    "api_failure": {
+      "scenario": "Backend endpoint throws an unhandled exception",
+      "handling": [
+        "FastAPI global exception handler catches all unhandled exceptions",
+        "Returns 500 {detail: 'Internal server error'} — never leaks stack traces to client",
+        "Logs full traceback with job_id/file_id context for debugging",
+        "Frontend shows generic error toast with 'Please try again' message"
+      ]
+    },
+    "redis_failure": {
+      "scenario": "Redis becomes unavailable",
+      "handling": [
+        "Backend: redis connection wrapped in try/except, returns 503 {detail: 'Service temporarily unavailable'}",
+        "Worker: rq worker has built-in reconnect logic with exponential backoff",
+        "Docker Compose: backend and worker have depends_on: redis, so redis starts first",
+        "Health check: backend /health endpoint pings Redis, returns 503 if unreachable"
+      ]
+    },
+    "upload_failure": {
+      "scenario": "File upload fails mid-transfer or file is corrupt",
+      "handling": [
+        "Backend saves to temp file first, then atomically renames to final path",
+        "If upload is interrupted, partial temp file is cleaned up",
+        "If file is corrupt (e.g., invalid PDF), the error is caught at worker processing time, not upload time",
+        "Frontend shows upload progress bar and retries on network failure (up to 3 attempts)"
+      ]
+    },
+    "storage_full": {
+      "scenario": "Disk space runs out on the storage volume",
+      "handling": [
+        "Backend upload endpoint catches OSError on write, returns 507 {detail: 'Storage full'}",
+        "Cleanup task runs more aggressively if disk usage > 80% (reduce TTL to 30 minutes)",
+        "Monitoring alert should be set up for disk usage > 70%"
+      ]
+    },
+    "agent_responsible": {
+      "runtime_failures": "Fixer Agent patches code bugs found during testing",
+      "infrastructure_failures": "DevOps Agent adjusts Docker/Redis configuration",
+      "contract_mismatches": "Planner Agent updates api-contract.yaml and shared schemas",
+      "test_failures_after_fix": "Fixer Agent iterates (max 3 cycles), then escalates to Planner"
+    }
+  },
+
+  "success_criteria": {
+    "end_to_end_flows": [
+      {
+        "id": "SC-1",
+        "criteria": "Merge flow: Upload 2 PDFs → create merge job → poll until completed → download merged PDF with correct page count",
+        "measurement": "E2E test test_merge_flow passes: uploaded 1-page + 5-page, downloaded output has 6 pages",
+        "status_target": "PASS"
+      },
+      {
+        "id": "SC-2",
+        "criteria": "Split flow: Upload 5-page PDF → create split job with page_ranges '1-3' → download split PDF with 3 pages",
+        "measurement": "Worker test test_split_pages passes: output PDF has exactly 3 pages",
+        "status_target": "PASS"
+      },
+      {
+        "id": "SC-3",
+        "criteria": "Compress flow: Upload PDF → create compress job → download compressed PDF that is smaller than input",
+        "measurement": "Worker test test_compress_reduces_size passes: output size < input size",
+        "status_target": "PASS"
+      },
+      {
+        "id": "SC-4",
+        "criteria": "Convert flow: Upload PDF → create convert job (to docx) → download valid .docx file",
+        "measurement": "Worker test test_convert_pdf_to_docx passes: output is valid .docx",
+        "status_target": "PASS"
+      }
+    ],
+    "api_correctness": [
+      {
+        "id": "SC-5",
+        "criteria": "All 5 API endpoints return correct status codes and response shapes per api-contract.yaml",
+        "measurement": "All test_api.py tests pass (9 tests)",
+        "status_target": "PASS"
+      },
+      {
+        "id": "SC-6",
+        "criteria": "Error cases handled: invalid file type (422), oversized file (413), missing job (404), incomplete job download (400)",
+        "measurement": "Negative test cases in test_api.py all pass",
+        "status_target": "PASS"
+      }
+    ],
+    "ui_functionality": [
+      {
+        "id": "SC-7",
+        "criteria": "Landing page renders 4 tool cards (Merge, Split, Compress, Convert) with working navigation",
+        "measurement": "Manual or Playwright verification: all 4 cards visible and clickable",
+        "status_target": "PASS"
+      },
+      {
+        "id": "SC-8",
+        "criteria": "Upload page accepts drag-and-drop PDF files and shows file list",
+        "measurement": "Manual or Playwright verification: drop file, see name and size",
+        "status_target": "PASS"
+      },
+      {
+        "id": "SC-9",
+        "criteria": "Processing page shows progress and redirects to download on completion",
+        "measurement": "Manual or Playwright verification: spinner visible, redirect works",
+        "status_target": "PASS"
+      },
+      {
+        "id": "SC-10",
+        "criteria": "Download page triggers file download automatically",
+        "measurement": "Manual or Playwright verification: file downloads without extra clicks",
+        "status_target": "PASS"
+      }
+    ],
+    "infrastructure": [
+      {
+        "id": "SC-11",
+        "criteria": "docker-compose up --build starts all 4 services without errors",
+        "measurement": "All containers reach 'running' state, no restart loops",
+        "status_target": "PASS"
+      },
+      {
+        "id": "SC-12",
+        "criteria": "Shared storage volume works: backend writes uploads, worker reads them, backend serves downloads",
+        "measurement": "E2E merge flow completes successfully (implies storage sharing works)",
+        "status_target": "PASS"
+      }
+    ],
+    "reliability": [
+      {
+        "id": "SC-13",
+        "criteria": "Failed jobs show error in UI and allow retry",
+        "measurement": "test_corrupt_pdf_fails passes, UI shows error state",
+        "status_target": "PASS"
+      },
+      {
+        "id": "SC-14",
+        "criteria": "Files are cleaned up after TTL (2 hours)",
+        "measurement": "Cleanup task code exists and deletes files with mtime > 7200s",
+        "status_target": "PASS"
+      }
+    ],
+    "overall_gate": "All 14 success criteria must be PASS. test-report.json must show 0 failures. The system is production-ready for MVP when all gates clear."
+  }
+}
