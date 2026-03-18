@@ -159,3 +159,4 @@ export default function JobPage() {
     </div>
   );
 }
+export const runtime = 'edge';

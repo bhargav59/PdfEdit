@@ -207,3 +207,4 @@ export default function ToolPage() {
     </div>
   );
 }
+export const runtime = 'edge';

@@ -126,3 +126,4 @@ export default function DownloadPage() {
     </div>
   );
 }
+export const runtime = 'edge';
