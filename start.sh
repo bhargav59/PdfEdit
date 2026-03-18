@@ -1,3 +1,3 @@
 #!/bin/bash
 python -m worker.main &
-python -m uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 7860
