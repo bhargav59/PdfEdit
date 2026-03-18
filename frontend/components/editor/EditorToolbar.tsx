@@ -99,8 +99,14 @@ export default function EditorToolbar({
               className="border border-gray-300 rounded px-1 py-1 text-sm"
             >
               <option value="Helvetica">Helvetica</option>
+              <option value="Helvetica-Bold">Helvetica Bold</option>
+              <option value="Helvetica-Oblique">Helvetica Oblique</option>
               <option value="Times-Roman">Times</option>
+              <option value="Times-Bold">Times Bold</option>
+              <option value="Times-Italic">Times Italic</option>
               <option value="Courier">Courier</option>
+              <option value="Courier-Bold">Courier Bold</option>
+              <option value="Courier-Oblique">Courier Oblique</option>
             </select>
           </>
         )}

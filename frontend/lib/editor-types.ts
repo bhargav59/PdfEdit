@@ -16,7 +16,16 @@ export interface AddTextOperation extends BaseOperation {
   text: string;
   fontSize: number;
   color: string;
-  fontFamily: "Helvetica" | "Times-Roman" | "Courier";
+  fontFamily:
+    | "Helvetica"
+    | "Times-Roman"
+    | "Courier"
+    | "Helvetica-Bold"
+    | "Times-Bold"
+    | "Courier-Bold"
+    | "Helvetica-Oblique"
+    | "Times-Italic"
+    | "Courier-Oblique";
 }
 
 export interface DrawOperation extends BaseOperation {
@@ -73,7 +82,16 @@ export interface EditorState {
   activeTool: EditorTool;
   fontSize: number;
   fontColor: string;
-  fontFamily: "Helvetica" | "Times-Roman" | "Courier";
+  fontFamily:
+    | "Helvetica"
+    | "Times-Roman"
+    | "Courier"
+    | "Helvetica-Bold"
+    | "Times-Bold"
+    | "Courier-Bold"
+    | "Helvetica-Oblique"
+    | "Times-Italic"
+    | "Courier-Oblique";
   strokeColor: string;
   strokeWidth: number;
   highlightColor: string;

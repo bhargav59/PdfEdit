@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
+import { getCssFont } from "@/lib/pdf";
 
 interface TextInputProps {
   x: number;
@@ -69,6 +70,7 @@ export default function TextInput({
   );
 
   const scaledFontSize = Math.max(fontSize * scale, 12);
+  const cssFont = getCssFont(fontFamily);
 
   return (
     <input
@@ -83,7 +85,9 @@ export default function TextInput({
         left: x,
         top: y,
         fontSize: scaledFontSize,
-        fontFamily,
+        fontFamily: cssFont.fontFamily,
+        fontWeight: cssFont.fontWeight,
+        fontStyle: cssFont.fontStyle,
         color,
         minWidth: width ? Math.max(width, 120) : 120,
         lineHeight: 1.2,

@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import type { PDFDocumentProxy } from "@/lib/pdf";
-import { canvasToPdfCoords, pdfToCanvasCoords } from "@/lib/pdf";
+import { canvasToPdfCoords, pdfToCanvasCoords, getCanvasFontString } from "@/lib/pdf";
 import type {
   EditorState,
   EditOperation,
@@ -161,7 +161,7 @@ export default function PdfCanvasViewer({
       switch (op.type) {
         case "add_text": {
           const pos = pdfToCanvasCoords(op.x, op.y, scale, pageH);
-          ctx.font = `${op.fontSize * scale}px ${op.fontFamily}, sans-serif`;
+          ctx.font = getCanvasFontString(op.fontFamily, op.fontSize * scale);
           ctx.fillStyle = op.color;
           ctx.textBaseline = "alphabetic";
           ctx.fillText(op.text, pos.x, pos.y);

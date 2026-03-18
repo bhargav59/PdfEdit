@@ -55,3 +55,35 @@ export function pdfToCanvasCoords(
     y: (pageHeightPts - pdfY) * scale,
   };
 }
+
+/**
+ * Convert PDF Standard 14 font names to CSS properties.
+ */
+export function getCssFont(font: string): { fontWeight: string; fontStyle: string; fontFamily: string } {
+  let fontWeight = "normal";
+  let fontStyle = "normal";
+  let family = font;
+
+  if (family.includes("-Bold")) {
+    fontWeight = "bold";
+    family = family.replace("-Bold", "");
+  }
+  if (family.includes("-Oblique") || family.includes("-Italic")) {
+    fontStyle = "italic";
+    family = family.replace("-Oblique", "").replace("-Italic", "");
+  }
+  if (family === "Times-Roman") {
+    family = "Times, serif";
+  } else if (family === "Courier") {
+    family = "Courier, monospace";
+  } else {
+    family = `${family}, sans-serif`;
+  }
+
+  return { fontWeight, fontStyle, fontFamily: family };
+}
+
+export function getCanvasFontString(font: string, sizePx: number): string {
+  const css = getCssFont(font);
+  return `${css.fontStyle} ${css.fontWeight} ${sizePx}px ${css.fontFamily}`;
+}
