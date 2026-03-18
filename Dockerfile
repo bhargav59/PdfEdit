@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils wget curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils wget curl redis-server && rm -rf /var/lib/apt/lists/*
 
 # Set up user
 RUN useradd -m -u 1000 user
