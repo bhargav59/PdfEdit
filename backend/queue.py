@@ -12,7 +12,10 @@ from backend.config import REDIS_URL
 
 
 def get_redis() -> redis_lib.Redis:
-    return redis_lib.Redis.from_url(REDIS_URL, decode_responses=True)
+    kwargs = {"decode_responses": True}
+    if REDIS_URL.startswith("rediss://"):
+        kwargs["ssl_cert_reqs"] = "none"
+    return redis_lib.Redis.from_url(REDIS_URL, **kwargs)
 
 
 def create_job_record(
@@ -44,7 +47,10 @@ def create_job_record(
 def enqueue_job(job_id: str) -> None:
     """Push the job onto the rq queue for worker consumption."""
     r = get_redis()
-    q = Queue("pdf-jobs", connection=redis_lib.Redis.from_url(REDIS_URL))
+    kwargs = {}
+    if REDIS_URL.startswith("rediss://"):
+        kwargs["ssl_cert_reqs"] = "none"
+    q = Queue("pdf-jobs", connection=redis_lib.Redis.from_url(REDIS_URL, **kwargs))
     # Import the shared task function — rq needs a reference it can serialize.
     from shared.tasks import process_job
 

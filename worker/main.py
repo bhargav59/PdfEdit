@@ -30,7 +30,12 @@ from rq import Worker, Queue
 def main() -> None:
     """Connect to Redis and start the rq worker."""
     redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
-    conn = redis_lib.Redis.from_url(redis_url)
+    
+    kwargs = {}
+    if redis_url.startswith("rediss://"):
+        kwargs["ssl_cert_reqs"] = "none"
+        
+    conn = redis_lib.Redis.from_url(redis_url, **kwargs)
 
     queue = Queue("pdf-jobs", connection=conn)
     worker = Worker([queue], connection=conn)
