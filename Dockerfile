@@ -19,7 +19,12 @@ COPY --chown=1000:1000 worker/ ./worker/
 COPY --chown=1000:1000 start.sh ./start.sh
 
 # Download the fonts
-RUN mkdir -p shared/fonts && wget -qO shared/fonts/Roboto-Regular.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/Roboto-Regular.ttf" && wget -qO shared/fonts/Lato-Regular.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/lato/Lato-Regular.ttf" && wget -qO shared/fonts/Montserrat-Regular.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat-Regular.ttf" && chown -R 1000:1000 shared/fonts
+RUN mkdir -p shared/fonts \
+    && wget -qO shared/fonts/Roboto-Regular.ttf "https://raw.githubusercontent.com/googlefonts/roboto/main/src/hinted/Roboto-Regular.ttf" \
+    && wget -qO shared/fonts/Lato-Regular.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/lato/Lato-Regular.ttf" \
+    && wget -qO shared/fonts/Montserrat-Regular.ttf "https://raw.githubusercontent.com/JulietaUla/Montserrat/master/fonts/ttf/Montserrat-Regular.ttf" \
+    && wget -qO shared/fonts/OpenSans-Regular.ttf "https://raw.githubusercontent.com/googlefonts/opensans/main/fonts/ttf/OpenSans-Regular.ttf" \
+    && chown -R 1000:1000 shared/fonts
 
 # Ensure storage directories exist
 RUN mkdir -p /storage/uploads /storage/output && chown -R 1000:1000 /storage
