@@ -42,9 +42,14 @@ async def create_job(request: JobCreateRequest):
 
     job_id = uuid.uuid4().hex
 
-    # Create job record in Redis and enqueue for worker
-    queue.create_job_record(job_id, request.tool, request.file_ids, request.options)
-    queue.enqueue_job(job_id)
+    try:
+        # Create job record in Redis and enqueue for worker
+        queue.create_job_record(job_id, request.tool, request.file_ids, request.options)
+        queue.enqueue_job(job_id)
+    except Exception as e:
+        import traceback
+        error_msg = f"Redis Error: {str(e)}\n\n{traceback.format_exc()}"
+        raise HTTPException(status_code=500, detail=error_msg)
 
     return JobCreateResponse(job_id=job_id, status="queued")
 
