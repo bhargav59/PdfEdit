@@ -34,7 +34,7 @@ async def create_job(request: JobCreateRequest):
             status_code=422,
             detail="Merge requires at least 2 files.",
         )
-    if request.tool in ("split", "compress", "convert") and len(request.file_ids) != 1:
+    if request.tool in ("split", "compress", "convert", "edit") and len(request.file_ids) != 1:
         raise HTTPException(
             status_code=422,
             detail=f"{request.tool.capitalize()} requires exactly 1 file.",

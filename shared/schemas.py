@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 MAX_FILE_SIZE = 52_428_800  # 50 MB
 FILE_TTL_SECONDS = 7200  # 2 hours
 
-ALLOWED_TOOLS = ("merge", "split", "compress", "convert")
+ALLOWED_TOOLS = ("merge", "split", "compress", "convert", "edit")
 
 ALLOWED_CONTENT_TYPES = {
     "application/pdf",
@@ -29,6 +29,7 @@ TOOL_EXT_MAP = {
     "split": "pdf",
     "compress": "pdf",
     "convert": None,  # determined by options.convert_to
+    "edit": "pdf",
 }
 
 # ── Request / Response Models ──────────────────────────────────────────────────
@@ -40,7 +41,7 @@ class FileUploadResponse(BaseModel):
 
 
 class JobCreateRequest(BaseModel):
-    tool: Literal["merge", "split", "compress", "convert"]
+    tool: Literal["merge", "split", "compress", "convert", "edit"]
     file_ids: list[str]
     options: dict = Field(default_factory=dict)
 

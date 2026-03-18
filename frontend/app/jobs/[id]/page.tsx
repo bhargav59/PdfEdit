@@ -12,6 +12,7 @@ const TOOL_LABELS: Record<string, string> = {
   split: "Split PDF",
   compress: "Compress PDF",
   convert: "Convert PDF",
+  edit: "Edit PDF",
 };
 
 export default function JobPage() {

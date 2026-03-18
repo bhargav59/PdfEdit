@@ -10,10 +10,12 @@ from worker.handlers.merge import merge_handler
 from worker.handlers.split import split_handler
 from worker.handlers.compress import compress_handler
 from worker.handlers.convert import convert_handler
+from worker.handlers.edit import edit_handler
 
 HANDLER_REGISTRY: dict[str, object] = {
     "merge": merge_handler,
     "split": split_handler,
     "compress": compress_handler,
     "convert": convert_handler,
+    "edit": edit_handler,
 }

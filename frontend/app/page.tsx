@@ -25,6 +25,12 @@ const tools = [
     icon: "\uD83D\uDD04",
     href: "/tools/convert",
   },
+  {
+    title: "Edit PDF",
+    description: "Add text, draw, highlight, and white-out content directly on your PDF.",
+    icon: "\u270F\uFE0F",
+    href: "/tools/edit",
+  },
 ];
 
 export default function HomePage() {
@@ -35,7 +41,7 @@ export default function HomePage() {
           PDF Toolkit
         </h1>
         <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-          Free, fast, and secure PDF processing tools. Merge, split, compress, and convert your PDF files in seconds.
+          Free, fast, and secure PDF processing tools. Merge, split, compress, convert, and edit your PDF files in seconds.
         </p>
       </div>
 

@@ -22,8 +22,9 @@ def compress_handler(job_data: dict, r: Redis) -> None:
 
     writer = PdfWriter()
     for page in reader.pages:
-        page.compress_content_streams()
         writer.add_page(page)
+    for page in writer.pages:
+        page.compress_content_streams()
 
     # Strip document metadata to shave off a few more bytes
     writer.add_metadata({})

@@ -26,6 +26,10 @@ const TOOL_META: Record<Tool, { title: string; description: string }> = {
     title: "Convert PDF",
     description: "Select a PDF file to convert to another format.",
   },
+  edit: {
+    title: "Edit PDF",
+    description: "Add text, draw, highlight, and white-out content on your PDF.",
+  },
 };
 
 function formatFileSize(bytes: number): string {

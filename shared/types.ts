@@ -1,7 +1,7 @@
 // Shared TypeScript types for the PDF Processing SaaS frontend.
 // Mirrors shared/schemas.py — keep in sync.
 
-export type Tool = "merge" | "split" | "compress" | "convert";
+export type Tool = "merge" | "split" | "compress" | "convert" | "edit";
 export type JobStatus = "queued" | "processing" | "completed" | "failed";
 
 export interface FileUploadResponse {

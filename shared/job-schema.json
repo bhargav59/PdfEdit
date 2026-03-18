@@ -21,7 +21,7 @@
     },
     "tool": {
       "type": "string",
-      "enum": ["merge", "split", "compress", "convert"]
+      "enum": ["merge", "split", "compress", "convert", "edit"]
     },
     "status": {
       "type": "string",
