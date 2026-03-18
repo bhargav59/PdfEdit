@@ -23,7 +23,6 @@ RUN mkdir -p shared/fonts && \
     wget -qO shared/fonts/Roboto-Regular.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/Roboto-Regular.ttf" && \
     wget -qO shared/fonts/Lato-Regular.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/lato/Lato-Regular.ttf" && \
     wget -qO shared/fonts/Montserrat-Regular.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat-Regular.ttf" && \
-    wget -qO shared/fonts/OpenSans-Regular.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/opensans/OpenSans%5Bwdth%2Cwght%5D.ttf" && \
     chown -R 1000:1000 shared/fonts
 
 # Ensure storage directories exist and are writable by the user
