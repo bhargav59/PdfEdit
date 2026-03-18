@@ -1,9 +1,7 @@
 FROM python:3.12-slim
 
 # Install system dependencies (Poppler for PDF handling)
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends poppler-utils \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -22,10 +20,6 @@ COPY start.sh ./start.sh
 RUN mkdir -p /storage/uploads /storage/output
 ENV STORAGE_PATH=/storage
 ENV PYTHONPATH=/app
-ENV PORT=8000
-
-# Expose port
-EXPOSE $PORT
 
 # Start both Worker and Backend
 CMD ["./start.sh"]
