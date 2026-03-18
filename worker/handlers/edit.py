@@ -7,10 +7,23 @@ from io import BytesIO
 from pypdf import PdfReader, PdfWriter
 from reportlab.lib.colors import HexColor
 from reportlab.pdfgen import canvas as rl_canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+import os
 from redis import Redis
 
 from worker.utils import get_file_path, get_output_path, update_job_status
 
+# Register custom fonts if available
+FONTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "shared", "fonts")
+_CUSTOM_FONTS = ["Roboto", "Lato", "Montserrat", "OpenSans"]
+for _font in _CUSTOM_FONTS:
+    _font_path = os.path.join(FONTS_DIR, f"{_font}-Regular.ttf")
+    if os.path.exists(_font_path):
+        try:
+            pdfmetrics.registerFont(TTFont(_font, _font_path))
+        except Exception as e:
+            print(f"Warning: Could not register font {_font}: {e}")
 
 def edit_handler(job_data: dict, r: Redis) -> None:
     """Apply text, drawing, highlight, and white-out operations to a PDF."""

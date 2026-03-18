@@ -107,6 +107,10 @@ export default function EditorToolbar({
               <option value="Courier">Courier</option>
               <option value="Courier-Bold">Courier Bold</option>
               <option value="Courier-Oblique">Courier Oblique</option>
+              <option value="Roboto">Roboto</option>
+              <option value="Lato">Lato</option>
+              <option value="Montserrat">Montserrat</option>
+              <option value="OpenSans">Open Sans</option>
             </select>
           </>
         )}

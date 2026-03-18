@@ -76,6 +76,10 @@ export function getCssFont(font: string): { fontWeight: string; fontStyle: strin
     family = "Times, serif";
   } else if (family === "Courier") {
     family = "Courier, monospace";
+  } else if (family === "OpenSans") {
+    family = "'Open Sans', sans-serif";
+  } else if (["Roboto", "Lato", "Montserrat"].includes(family)) {
+    family = `'${family}', sans-serif`;
   } else {
     family = `${family}, sans-serif`;
   }

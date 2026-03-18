@@ -25,7 +25,11 @@ export interface AddTextOperation extends BaseOperation {
     | "Courier-Bold"
     | "Helvetica-Oblique"
     | "Times-Italic"
-    | "Courier-Oblique";
+    | "Courier-Oblique"
+    | "Roboto"
+    | "Lato"
+    | "Montserrat"
+    | "OpenSans";
 }
 
 export interface DrawOperation extends BaseOperation {
@@ -91,7 +95,11 @@ export interface EditorState {
     | "Courier-Bold"
     | "Helvetica-Oblique"
     | "Times-Italic"
-    | "Courier-Oblique";
+    | "Courier-Oblique"
+    | "Roboto"
+    | "Lato"
+    | "Montserrat"
+    | "OpenSans";
   strokeColor: string;
   strokeWidth: number;
   highlightColor: string;
