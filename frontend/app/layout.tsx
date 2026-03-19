@@ -6,8 +6,21 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "PDF Toolkit",
-  description: "Professional PDF processing tools — merge, split, compress, and convert your PDF files.",
+  title: "My Free Personal PDF Editor — Merge, Split & Compress (2026)",
+  description: "Every tool you need to use PDFs, at your fingertips. 100% free and easy to use! Give it a try to merge, split, compress, convert, and edit PDFs.",
+  keywords: ["100% free", "easy to use", "merge PDF", "split PDF", "compress PDF", "convert PDF", "edit PDF", "PDF editor", "PDF toolkit"],
+  openGraph: {
+    title: "My Free Personal PDF Editor — Merge, Split & Compress (2026)",
+    description: "Every tool you need to use PDFs, at your fingertips. 100% free and easy to use!",
+    type: "website",
+    url: "https://pdftoolkit.com",
+    siteName: "PDF Toolkit",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "My Free Personal PDF Editor — Merge, Split & Compress (2026)",
+    description: "Every tool you need to use PDFs, at your fingertips. 100% free and easy to use!",
+  }
 };
 
 export default function RootLayout({
