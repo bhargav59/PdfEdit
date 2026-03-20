@@ -63,6 +63,14 @@ app.include_router(download.router)
 app.include_router(files.router)
 
 
+@app.get("/")
+async def root():
+    return {
+        "message": "PDF Processing API is running.",
+        "status": "active",
+        "docs": "/docs"
+    }
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
