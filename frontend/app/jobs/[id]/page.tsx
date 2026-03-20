@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ProgressBar from "@/components/ProgressBar";
+import AdBanner from "@/components/AdBanner";
 import { getJobStatus } from "@/lib/api";
 import type { JobDetail } from "@/lib/types";
 
@@ -145,7 +146,7 @@ export default function JobPage() {
         </p>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-8">
+      <div className="bg-white border border-gray-200 rounded-xl p-8 mb-8">
         <ProgressBar progress={job.progress} />
 
         <div className="mt-6 flex items-center justify-between text-sm text-gray-500">
@@ -156,6 +157,8 @@ export default function JobPage() {
           <span>Job ID: {job.job_id.slice(0, 8)}...</span>
         </div>
       </div>
+
+      <AdBanner dataAdSlot="0987654321" />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import FileDropzone from "@/components/FileDropzone";
+import AdBanner from "@/components/AdBanner";
 import { uploadFile, createJob } from "@/lib/api";
 import type { Tool } from "@/lib/types";
 
@@ -122,7 +123,19 @@ export default function ToolPage() {
       </Link>
 
       <h1 className="text-3xl font-bold text-gray-900 mb-2">{meta.title}</h1>
-      <p className="text-gray-500 mb-8">{meta.description}</p>
+      <p className="text-gray-500 mb-6">{meta.description}</p>
+
+      {/* Ad slot to keep users engaged and monetize */}
+      <AdBanner dataAdSlot="1234567890" />
+
+      {error && (
+        <div className="mb-6 p-4 bg-orange-50 border border-orange-200 text-orange-800 rounded-lg whitespace-pre-wrap">
+          <p className="font-medium flex items-center gap-2">
+            <span>⚠️</span> <span>Action Needed</span>
+          </p>
+          <p className="mt-1 text-sm">{error}</p>
+        </div>
+      )}
 
       <FileDropzone
         multiple={isMultiple}
@@ -162,12 +175,6 @@ export default function ToolPage() {
               </li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-6 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-          {error}
         </div>
       )}
 

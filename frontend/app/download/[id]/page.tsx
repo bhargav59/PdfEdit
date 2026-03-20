@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import DownloadButton from "@/components/DownloadButton";
+import AdBanner from "@/components/AdBanner";
 import { getJobStatus, getDownloadUrl } from "@/lib/api";
 import type { JobDetail } from "@/lib/types";
 
@@ -113,7 +114,7 @@ export default function DownloadPage() {
         Your file has been processed successfully. The download should start automatically.
       </p>
 
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-4 mb-12">
         <DownloadButton jobId={jobId} />
 
         <Link
@@ -123,6 +124,8 @@ export default function DownloadPage() {
           Process another file
         </Link>
       </div>
+
+      <AdBanner dataAdSlot="1122334455" />
     </div>
   );
 }
