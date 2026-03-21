@@ -78,3 +78,16 @@ export async function getJobStatus(jobId: string): Promise<JobDetail> {
 export function getDownloadUrl(jobId: string): string {
   return `${API_URL}/download/${jobId}`;
 }
+
+export async function getSuggestedFont(fileId: string): Promise<string> {
+  try {
+    const response = await fetchWithWakeUp(`${API_URL}/files/${fileId}/font`);
+    if (response.ok) {
+      const data = await response.json();
+      return data.font || "Helvetica";
+    }
+  } catch (e) {
+    console.warn("Failed to suggest font", e);
+  }
+  return "Helvetica";
+}

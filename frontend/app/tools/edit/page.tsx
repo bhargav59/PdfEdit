@@ -98,6 +98,7 @@ export default function EditPage() {
       )}
       <PdfEditor
         pdfUrl={pdfUrl}
+        fileId={fileId}
         onSave={handleSave}
         saving={saving}
         uploadReady={!!fileId && !uploading}

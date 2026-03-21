@@ -1,6 +1,7 @@
 "use client";
 
 import { useReducer, useState, useEffect, useCallback } from "react";
+import { getSuggestedFont } from "@/lib/api";
 import { loadPdfDocument } from "@/lib/pdf";
 import type { PDFDocumentProxy } from "@/lib/pdf";
 import type { EditOperation, EditorState } from "@/lib/editor-types";
@@ -13,6 +14,7 @@ import PdfCanvasViewer from "./PdfCanvasViewer";
 
 interface PdfEditorProps {
   pdfUrl: string;
+  fileId: string | null;
   onSave: (operations: EditOperation[]) => void;
   saving: boolean;
   uploadReady: boolean;
@@ -20,6 +22,7 @@ interface PdfEditorProps {
 
 export default function PdfEditor({
   pdfUrl,
+  fileId,
   onSave,
   saving,
   uploadReady,
@@ -54,6 +57,17 @@ export default function PdfEditor({
       cancelled = true;
     };
   }, [pdfUrl]);
+
+  useEffect(() => {
+    if (!fileId) return;
+    let cancelled = false;
+    getSuggestedFont(fileId).then((font) => {
+      if (!cancelled && font) {
+        setToolState((prev) => ({ ...prev, fontFamily: font as EditorState["fontFamily"] }));
+      }
+    });
+    return () => { cancelled = true; };
+  }, [fileId]);
 
   const handleAddOperation = useCallback(
     (op: EditOperation) => dispatch({ type: "ADD", operation: op }),
